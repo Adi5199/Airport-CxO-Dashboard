@@ -427,9 +427,5 @@ For questions, issues, or suggestions, please open an issue in the repository or
 
 ## 📄 License
 
-© 2026 Bangalore International Airport Limited (BIAL)
-All rights reserved.
 
 ---
-
-**Built with ❤️ for Airport Operations Excellence**
