@@ -3,13 +3,18 @@ export interface OverviewKPIs {
   domestic_pax: number;
   international_pax: number;
   pax_vs_7day_pct: number;
+  total_atm: number;
   queue_compliance_pct: number;
   compliance_delta: number;
-  avg_reject_rate: number;
   voc_ratio: number;
   total_complaints: number;
   total_compliments: number;
-  biometric_adoption_pct: number;
+  otp_pct: number;
+  baggage_delivery_pct: number;
+  first_bag_minutes: number;
+  last_bag_minutes: number;
+  safety_issues: number;
+  slot_adherence_pct: number;
 }
 
 export interface TrendPoint {
@@ -172,4 +177,23 @@ export interface ComplianceTableRow {
   variance_from_target: number;
   pax_total: number;
   avg_wait_time_min: number;
+}
+
+export interface TrafficParticle {
+  id: number;
+  x: number;
+  y: number;
+  progress: number;
+  opacity: number;
+  size: number;
+}
+
+export interface TrafficSimState {
+  particles: TrafficParticle[];
+  heatmapGrid: number[][];
+  passengersArrived: number;
+  totalPassengers: number;
+  elapsedMs: number;
+  isComplete: boolean;
+  congestionLevel: "low" | "medium" | "high";
 }

@@ -5,29 +5,31 @@ router = APIRouter(prefix="/api/security", tags=["security"])
 
 
 @router.get("/summary")
-def get_security_summary(request: Request, date: str = Query(default=None)):
+def get_security_summary(request: Request, date: str = Query(default=None), terminals: str = Query(default="T1,T2")):
     dl = request.app.state.data_loader
     config = request.app.state.config
     report_date = pd.to_datetime(date) if date else pd.to_datetime(config["data"]["report_date"])
+    terminal_list = terminals.split(",")
 
     security_daily = dl.load_security_data()["daily"]
-    report = security_daily[security_daily["date"] == report_date]
+    report = security_daily[(security_daily["date"] == report_date) & (security_daily["terminal"].isin(terminal_list))]
 
     return {
         "total_cleared": int(report["cleared_volume"].sum()),
-        "avg_reject_rate": round(float(report["reject_rate_pct"].mean()), 1),
+        "avg_reject_rate": round(float(report["reject_rate_pct"].mean()), 1) if len(report) > 0 else 0,
         "high_reject_lanes_count": int(len(report[report["reject_rate_pct"] > 8])),
     }
 
 
 @router.get("/lanes")
-def get_lanes(request: Request, date: str = Query(default=None)):
+def get_lanes(request: Request, date: str = Query(default=None), terminals: str = Query(default="T1,T2")):
     dl = request.app.state.data_loader
     config = request.app.state.config
     report_date = pd.to_datetime(date) if date else pd.to_datetime(config["data"]["report_date"])
+    terminal_list = terminals.split(",")
 
     security_daily = dl.load_security_data()["daily"]
-    report = security_daily[security_daily["date"] == report_date].sort_values("cleared_volume", ascending=False)
+    report = security_daily[(security_daily["date"] == report_date) & (security_daily["terminal"].isin(terminal_list))].sort_values("cleared_volume", ascending=False)
 
     data = []
     for _, row in report.iterrows():
@@ -46,13 +48,14 @@ def get_lanes(request: Request, date: str = Query(default=None)):
 
 
 @router.get("/high-reject")
-def get_high_reject(request: Request, date: str = Query(default=None), threshold: float = 8.0):
+def get_high_reject(request: Request, date: str = Query(default=None), threshold: float = 8.0, terminals: str = Query(default="T1,T2")):
     dl = request.app.state.data_loader
     config = request.app.state.config
     report_date = pd.to_datetime(date) if date else pd.to_datetime(config["data"]["report_date"])
+    terminal_list = terminals.split(",")
 
     security_daily = dl.load_security_data()["daily"]
-    report = security_daily[security_daily["date"] == report_date]
+    report = security_daily[(security_daily["date"] == report_date) & (security_daily["terminal"].isin(terminal_list))]
     high = report[report["reject_rate_pct"] > threshold].sort_values("reject_rate_pct", ascending=False)
 
     lanes = []

@@ -11,8 +11,8 @@ export function Header() {
     <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-sm">
       <div className="flex items-center justify-between px-6 py-3">
         <div>
-          <h2 className="text-lg font-semibold">Airport Operations Dashboard</h2>
-          <p className="text-sm text-muted-foreground">GenAI-Powered Executive Insights</p>
+          <h2 className="text-lg font-semibold">BIAL Brain & Advisor</h2>
+          <p className="text-sm text-muted-foreground">GenAI-Powered Intelligent Operations</p>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">

@@ -16,6 +16,10 @@ class DataLoader:
         self._gate_data = None
         self._biometric_data = None
         self._voc_data = None
+        self._otp_data = None
+        self._baggage_delivery_data = None
+        self._slot_adherence_data = None
+        self._safety_data = None
 
     def load_all(self):
         self.load_passenger_data()
@@ -26,6 +30,10 @@ class DataLoader:
         self.load_gate_data()
         self.load_biometric_data()
         self.load_voc_data()
+        self.load_otp_data()
+        self.load_baggage_delivery_data()
+        self.load_slot_adherence_data()
+        self.load_safety_data()
 
     def load_passenger_data(self) -> Dict[str, pd.DataFrame]:
         if self._passenger_data is None:
@@ -79,3 +87,23 @@ class DataLoader:
                 "messages": pd.read_parquet(self.data_dir / "voc_messages.parquet"),
             }
         return self._voc_data
+
+    def load_otp_data(self) -> pd.DataFrame:
+        if self._otp_data is None:
+            self._otp_data = pd.read_parquet(self.data_dir / "otp_daily.parquet")
+        return self._otp_data
+
+    def load_baggage_delivery_data(self) -> pd.DataFrame:
+        if self._baggage_delivery_data is None:
+            self._baggage_delivery_data = pd.read_parquet(self.data_dir / "baggage_delivery.parquet")
+        return self._baggage_delivery_data
+
+    def load_slot_adherence_data(self) -> pd.DataFrame:
+        if self._slot_adherence_data is None:
+            self._slot_adherence_data = pd.read_parquet(self.data_dir / "slot_adherence.parquet")
+        return self._slot_adherence_data
+
+    def load_safety_data(self) -> pd.DataFrame:
+        if self._safety_data is None:
+            self._safety_data = pd.read_parquet(self.data_dir / "safety_issues.parquet")
+        return self._safety_data

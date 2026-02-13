@@ -8,8 +8,41 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { DEFAULT_REPORT_DATE } from "@/lib/constants";
 import type { DemoPrompt, ChatMessage } from "@/lib/types";
-import { Send, Bot, User, Sparkles, Trash2, Zap } from "lucide-react";
+import { Send, Bot, User, Sparkles, Trash2, Zap, Copy, Check, Mail } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+
+function ShareMessageButton({ content }: { content: string }) {
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard API unavailable
+    }
+  }
+
+  function handleEmail() {
+    const subject = encodeURIComponent("AI Insight — BIAL Brain & Advisor");
+    const body = encodeURIComponent(content);
+    window.open(`mailto:?subject=${subject}&body=${body}`, "_blank");
+  }
+
+  return (
+    <div className="flex items-center gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+      <button onClick={handleCopy} className="flex items-center gap-1 rounded px-2 py-1 text-xs text-muted-foreground hover:bg-accent transition-colors" title="Copy response">
+        {copied ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+        {copied ? "Copied" : "Copy"}
+      </button>
+      <button onClick={handleEmail} className="flex items-center gap-1 rounded px-2 py-1 text-xs text-muted-foreground hover:bg-accent transition-colors" title="Share via email">
+        <Mail className="h-3 w-3" />
+        Email
+      </button>
+    </div>
+  );
+}
 
 export default function ChatPage() {
   const date = DEFAULT_REPORT_DATE;
@@ -114,7 +147,7 @@ export default function ChatPage() {
                       <p className="text-sm text-muted-foreground mt-1">Ask about airport operations or use a demo scenario to get started.</p>
                     </div>
                     <div className="flex flex-wrap justify-center gap-2 mt-4">
-                      {["Queue compliance analysis", "Security lane issues", "Customer sentiment"].map((q) => (
+                      {["Queue performance analysis", "Security lane issues", "Customer sentiment"].map((q) => (
                         <Button key={q} variant="outline" size="sm" className="text-xs" onClick={() => sendMessage(q)}>
                           {q}
                         </Button>
@@ -124,7 +157,7 @@ export default function ChatPage() {
                 )}
 
                 {messages.map((msg, i) => (
-                  <div key={i} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : ""}`}>
+                  <div key={i} className={`group flex gap-3 ${msg.role === "user" ? "justify-end" : ""}`}>
                     {msg.role === "assistant" && (
                       <div className="shrink-0 w-7 h-7 rounded-full bg-primary flex items-center justify-center">
                         <Bot className="h-4 w-4 text-primary-foreground" />
@@ -132,9 +165,12 @@ export default function ChatPage() {
                     )}
                     <div className={`max-w-[80%] rounded-lg px-4 py-3 text-sm ${msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
                       {msg.role === "assistant" ? (
-                        <div className="chat-markdown">
-                          <ReactMarkdown>{msg.content}</ReactMarkdown>
-                        </div>
+                        <>
+                          <div className="chat-markdown">
+                            <ReactMarkdown>{msg.content}</ReactMarkdown>
+                          </div>
+                          <ShareMessageButton content={msg.content} />
+                        </>
                       ) : (
                         <div className="whitespace-pre-wrap">{msg.content}</div>
                       )}

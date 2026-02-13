@@ -1,258 +1,279 @@
-# ✈️ BIAL Airport Operations Dashboard
+# BIAL Brain & Advisor
 
-**GenAI-Powered Executive Dashboard for Airport Top Management**
+**GenAI-Powered CxO Dashboard for Bangalore International Airport**
 
-A comprehensive, interactive dashboard designed for Bangalore International Airport (BIAL) top management, featuring AI-powered insights, real-time operational monitoring, and conversational analytics.
+A comprehensive, interactive dashboard designed for BIAL top management, featuring AI-powered insights, operational monitoring across terminals, and conversational analytics. Built with Next.js 16 and FastAPI.
 
 ---
 
-## 🎯 Overview
+## Overview
 
-This dashboard provides executive-level visibility into critical airport KPIs, proactively highlights anomalies, and delivers actionable insights through an embedded GenAI chatbot. It integrates data from multiple operational sources to present a clear view of:
+The dashboard provides executive-level visibility into critical airport KPIs, proactively highlights anomalies, and delivers actionable insights through an embedded GenAI chatbot. It integrates data from multiple operational sources (AODB, XOVIES, E-Gate, Passenger Feedback, Daily E-logs) to present a unified view of:
 
-- **Passenger Volumes** (PAX) - Domestic/International, Arrivals/Departures
-- **Queue Time Compliance** - Entry, Check-in, Security zones
+- **Passenger Volumes** (PAX) - Domestic/International, bifurcated trends
+- **Air Traffic Movements** (ATM) - Domestic/International breakdown
+- **Queue Performance** - Departure Entry, Check-in, Security zones
+- **On-Time Performance** (OTP) - Flight departure & arrival punctuality
+- **Baggage Delivery** - First bag/last bag delivery times
+- **Safety Issues** - Incident tracking by terminal
+- **Slot Adherence** - Schedule compliance
+- **Voice of Customer** (VOC) - Sentiment analysis & feedback
 - **Security Lane Performance** - Throughput and reject rates
-- **Aircraft Movements** (ATM)
-- **Baggage & Gate Utilization**
-- **Biometric Adoption**
-- **Voice of Customer** (VOC) sentiment analysis
 
 ### Key Features
 
-✅ **AI-Powered Reasoning Engine** - Automated root cause analysis and insights generation
-✅ **Conversational Chatbot** - Natural language queries with contextual responses
-✅ **Interactive Dashboards** - Power BI-like cross-filtering and drill-down capabilities
-✅ **Anomaly Detection** - Proactive alerts for issues requiring leadership attention
-✅ **Demo Scenario** - Pre-configured use case demonstrating queue compliance analysis
-✅ **Mock Data** - Realistic airport operations data with injected anomalies
+- **AI-Powered Reasoning Engine** - Automated root cause analysis and insights generation
+- **Conversational Chatbot** - Natural language queries with streaming responses (Gemini 2.5 Flash)
+- **Terminal Filtering** - Dynamic data for Overall / Terminal 1 / Terminal 2 across all pages
+- **Traffic Monitoring** - Interactive SVG map of Terminal 2 with boarding call simulation and AI insights
+- **Compliance Advisor** - Regulatory, operational, and legal compliance tracking
+- **Anomaly Detection** - Proactive alerts for issues requiring leadership attention
+- **Share Functionality** - Copy or email AI responses and dashboard cards
+- **Dynamic Data Sources** - Sidebar shows relevant data sources per active tab
+- **Dark Theme** - oklch-based dark UI with Tailwind CSS 4
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```
-Airport-CxO-Dashboard/
-├── app.py                      # Main Streamlit application
-├── config.yaml                 # Configuration (targets, thresholds, AI settings)
-├── requirements.txt            # Python dependencies
-│
-├── data/
-│   ├── generators/             # Mock data generation scripts
-│   │   ├── generate_all_data.py     # Master data generation script
-│   │   ├── passenger_data.py        # PAX volumes & show-up profiles
-│   │   ├── queue_time_data.py       # Queue compliance metrics
-│   │   ├── security_data.py         # Security lane performance
-│   │   ├── atm_data.py              # Aircraft movements
-│   │   ├── baggage_gate_data.py     # Baggage & gate utilization
-│   │   └── biometric_voc_data.py    # Biometric & VOC data
-│   │
-│   └── generated/              # Generated parquet files (created after data gen)
-│
-├── src/
-│   ├── dashboard/
-│   │   ├── components/
-│   │   │   ├── kpi_cards.py         # Reusable KPI components
-│   │   │   ├── charts.py            # Chart components
-│   │   │   └── filters.py           # Global filter components
-│   │   │
-│   │   └── pages/
-│   │       ├── executive_overview.py    # Executive summary page
-│   │       ├── queue_compliance.py      # Queue compliance (demo focus)
-│   │       ├── security_operations.py   # Security & operations
-│   │       ├── ai_chat.py               # AI chatbot interface
-│   │       └── trends_analytics.py      # Trends & VOC analysis
-│   │
-│   ├── ai/
-│   │   ├── reasoning_engine.py      # AI-powered analysis engine
-│   │   ├── chatbot.py               # Conversational AI interface
-│   │   └── prompts.py               # System prompts & templates
-│   │
-│   └── utils/
-│       ├── data_loader.py           # Data loading with caching
-│       └── calculations.py          # Metrics & anomaly detection
-│
-└── .env.template                # Template for API keys
+Frontend:  Next.js 16 + shadcn/ui + Tailwind CSS 4 + Recharts   (port 3000)
+Backend:   FastAPI + Python (data layer + AI chat)                (port 8000)
+AI Chat:   Google Gemini 2.5 Flash (free tier)
+Data:      Parquet files (Pandas + PyArrow)
 ```
 
 ---
 
-## 🚀 Setup Instructions
+## Quick Start
 
 ### Prerequisites
 
-- Python 3.9 or higher
-- pip package manager
+- Python 3.9+
+- Node.js 18+
+- npm
 
 ### Step 1: Install Dependencies
 
+**Backend:**
 ```bash
 cd "Airport CxO Dash"
-pip3 install -r requirements.txt
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r backend/requirements.txt
 ```
 
-### Step 2: Generate Mock Data
+**Frontend:**
+```bash
+cd frontend
+npm install
+cd ..
+```
+
+### Step 2: Generate Mock Data (if not already present)
 
 ```bash
 cd data/generators
 python3 generate_all_data.py
+python3 operational_kpi_data.py
+cd ../..
 ```
 
-This will generate ~14 parquet files with realistic airport operations data for January 2026.
+This generates 17 parquet files with realistic airport operations data for January-March 2026.
 
-### Step 3: Configure API Keys (Optional)
+### Step 3: Configure AI Chat (Optional)
 
-For full GenAI chatbot functionality, configure your OpenAI API key:
+For full GenAI chatbot functionality:
 
-```bash
-cp .env.template .env
-# Edit .env and add your OPENAI_API_KEY
-```
+1. Go to **https://aistudio.google.com/apikey**
+2. Create an API key (free, no credit card needed)
+3. Add to `backend/.env`:
+   ```
+   GEMINI_API_KEY=AIzaSy...your-key-here
+   ```
 
-**Note:** The dashboard works without API keys using rule-based fallback analysis.
+The dashboard works without API keys using rule-based fallback analysis.
 
 ### Step 4: Run the Dashboard
 
 ```bash
-cd ../..  # Return to project root
-python3 -m streamlit run app.py
+./run.sh
 ```
 
-The dashboard will open in your browser at `http://localhost:8501`
+Opens at **http://localhost:3000**. To stop: `Ctrl+C` or `lsof -ti:8000 -ti:3000 | xargs kill`
 
 ---
 
-## 📊 Dashboard Pages
+## Dashboard Pages
 
-### 1. 🏠 Executive Overview
-- AI-generated executive summary
-- Key KPIs: Total PAX, Domestic/International split, Queue Compliance, VOC Ratio
-- 15-day trend lines for passengers and ATMs
-- Today's performance breakdown by terminal and zone
-- Proactive alerts for anomalies
+### 1. Operations Overview (`/overview`)
+- AI-generated executive summary with status indicator (On Track / Attention / Critical)
+- Terminal filter: Overall / Terminal 1 / Terminal 2
+- Key KPIs: Total PAX, ATM, On-Time Performance, Baggage Delivery, Safety Issues, Queue Performance, Slot Adherence, VOC Ratio, First Bag Delivery
+- Priority actions dynamically filtered by terminal
+- 15-day bifurcated trend lines (Total / Domestic / International) for PAX and ATM
+- Queue performance by zone (bar chart)
+- Collapsible Alerts & Anomalies section
 
-### 2. ⏱️ Queue Compliance (Demo)
-**⭐ Main Demo Page**
-- Overall compliance status across all zones
-- **AI-Powered Root Cause Analysis** button (key demo feature)
-- Zone-by-zone detailed performance
-- Time-windowed compliance heatmap
-- Interactive drill-down capabilities
-- Export to CSV
+### 2. Queue Performance (`/queue`)
+- Terminal filter: Overall / Terminal 1 / Terminal 2
+- Sub-tabs: Departure Entry, Check-in, Security
+- Queue KPIs: Overall Performance, Zones Below Target, PAX Affected, Target Achievement
+- Security KPIs: Total Cleared, Avg Reject Rate, High Reject Lanes
+- **AI-Powered Root Cause Analysis** - analyzes contributing factors, severity, and recommendations for the selected zone and terminal
+- Zone detail with performance gauge, time-series chart, and zone selector
+- Security lane charts (cleared volume, reject rate by lane) on Security sub-tab
+- Performance heatmap (all zones x time windows)
+- Detailed performance data table
 
-### 3. 🔒 Security & Operations
-- Security lane performance (cleared volumes, reject rates)
-- Lane-by-lane comparisons with alerting
-- Baggage belt utilization
-- Gate utilization & boarding mode mix (Aerobridge vs. Bus)
+### 3. Traffic Monitor (`/traffic`)
+- Interactive SVG map of BIAL Terminal 2
+- Boarding call simulation with particle animation (passengers flowing from lounge to gate)
+- Gate selector, speed control (1x/2x/4x), simulate/reset controls
+- Real-time status panel: gate status, passenger progress, congestion level, time elapsed
+- **AI Operational Insights** panel below the map with context-aware recommendations
+- All Gates legend
+- Data source: XOVIES
 
-### 4. 💬 AI Insights Chat
-**⭐ Conversational Interface**
-- Natural language query interface
-- Demo scenario prompts (sidebar)
-- Contextual responses with data analysis
-- Conversation history & export
-- Quick query suggestions
+### 4. Compliance Advisor (`/compliance`)
+- 4 compliance categories: Operational, Regulatory, Legal, Internal SOPs
+- Issue counts with severity indicators (Critical, High, Medium, Low)
+- Upcoming compliance tasks & deadlines with priority badges and countdown
+- Status tracking (Pending, In Progress, Under Review)
 
-### 5. 📈 Trends & Analytics
+### 5. AI Insights Chat (`/chat`)
+- Streaming chat interface powered by Gemini 2.5 Flash
+- Demo scenario prompts and quick queries in sidebar
+- Share individual AI responses (Copy / Email)
+- Conversation history with clear option
+- Contextual responses grounded in airport operational data
+
+### 6. Trends & Analytics (`/trends`)
 - 30-day passenger volume trends
-- Biometric adoption progression
 - Voice of Customer sentiment analysis
 - Feedback by terminal, channel, and department
-- Recent customer messages
 
 ---
 
-## 🎬 Demo Scenario Guide
+## Data Sources by Tab
 
-### Use Case: Queue Compliance Root Cause Analysis
-
-**Scenario:** On January 24, 2026, queue compliance dropped below target during the afternoon. Leadership needs to understand why and get actionable recommendations.
-
-### Step-by-Step Demo Flow
-
-#### Step 1: Executive Overview
-1. Navigate to **🏠 Executive Overview**
-2. Note the overall metrics and AI-generated summary
-3. Observe the alert about zones below target
-
-#### Step 2: Queue Compliance Deep Dive
-1. Navigate to **⏱️ Queue Compliance (Demo)**
-2. Observe:
-   - Overall compliance ~89% (below 95% target)
-   - 3+ zones below target
-   - Thousands of passengers affected
-
-3. **Click "🔍 Analyze Root Cause"** ⭐ **KEY DEMO MOMENT**
-
-The AI will:
-- Identify worst zones: "Check-in 34-86", "T2 Security Left/Right"
-- Pinpoint time window: 14:00-16:00
-- Analyze contributing factors:
-  - Passenger volume spike
-  - High reject rates at security lanes (L6, L3)
-  - Check-in processing delays
-- Generate **4 actionable recommendations**
-
-#### Step 3: Security Lane Correlation
-1. Navigate to **🔒 Security & Operations**
-2. Verify security lane issues:
-   - Lane L6 and L3 show reject rates >12% (target: <8%)
-   - Lower cleared volumes during peak hours
-3. Note the boarding mode anomaly (increased bus boarding at T2)
-
-#### Step 4: AI Chatbot Interaction
-1. Navigate to **💬 AI Insights Chat**
-2. Use the **Demo Scenario Prompts** in the sidebar:
-
-   **Prompt 1:** "Show me where and why queue-time target compliance dropped yesterday..."
-   - AI provides comprehensive analysis with specific numbers
-
-   **Prompt 2:** "Split the worst hour by airline and check-in banks..."
-   - AI identifies airline concentration patterns
-
-   **Prompt 3:** "Did passenger complaints vs compliments shift during the same period?"
-   - AI correlates with VOC data, showing increased negative feedback at T2
-
-3. Ask custom follow-up questions:
-   - "What specific actions should we take today?"
-   - "Show me historical patterns for T2 security"
-
-#### Step 5: Trends Validation
-1. Navigate to **📈 Trends & Analytics**
-2. Verify VOC sentiment drop on Jan 24
-3. Check biometric adoption trends
-4. Review recent negative feedback messages mentioning queues
-
-### Expected Insights from Demo
-
-The AI reasoning engine will identify:
-
-**Primary Issue:**
-- Queue compliance at Check-in 34-86 dropped to ~80% during 14:00-16:00 (Target: 95%)
-
-**Root Causes:**
-1. 45% spike in passenger volumes during afternoon peak
-2. Security lanes L6 & L3 with 12-14% reject rates (causing re-scans and delays)
-3. Check-in bank processing slower than normal
-4. 40%+ bus boarding at T2 causing irregular passenger arrival patterns
-
-**Recommendations:**
-1. ✅ Open 2 additional security lanes during 14:00-18:00 window
-2. ✅ Assign senior screeners to high-reject lanes (L6, L3)
-3. ✅ Implement queue marshaling at T2 check-in banks during peaks
-4. ✅ Promote biometric fast-track via digital signage
-
-**Impact:**
-- ~4,500 passengers experienced extended wait times
-- Customer complaints spiked 60% at T2
-- Compliments:Complaints ratio dropped from 2.5:1 to 1.4:1
+| Tab | Sources |
+|-----|---------|
+| Operations Overview | AODB, XOVIES, 3.1 E-Gate, Passenger Feedback, Daily E-logs & Comments |
+| Queue Performance | XOVIES, E-Gates, Compliance Advisor, Compliance Management System, Daily E-logs & Comments |
+| Traffic Monitor | XOVIES |
+| Compliance Advisor | Compliance Management System, AODB, XOVIES, Daily E-logs & Comments |
+| AI Insights Chat | AODB, XOVIES, Passenger Feedback |
+| Trends & Analytics | AODB, XOVIES, Passenger Feedback |
 
 ---
 
-## ⚙️ Configuration
+## Project Structure
 
-### Targets & Thresholds (config.yaml)
+```
+Airport CxO Dash/
+  config.yaml                    # Shared configuration (targets, thresholds)
+  run.sh                         # Single launcher (both services)
+
+  data/
+    generators/                  # Mock data generation scripts
+      generate_all_data.py       # Master data generator (13 files)
+      operational_kpi_data.py    # OTP, baggage delivery, slot adherence, safety (4 files)
+    generated/                   # 17 Parquet data files
+
+  backend/
+    main.py                      # FastAPI app entry point
+    .env                         # API keys (GEMINI_API_KEY)
+    core/
+      config.py                  # Configuration loader
+      data_loader.py             # Data loading with caching
+      calculations.py            # Metrics & anomaly detection
+    ai/
+      reasoning_engine.py        # AI-powered analysis (terminal-aware)
+      chatbot.py                 # Gemini streaming chatbot
+      prompts.py                 # System prompts & templates
+    routers/
+      overview.py                # /api/overview/* (KPIs, exec summary, trends, alerts)
+      queue.py                   # /api/queue/* (status, zones, root-cause, heatmap)
+      security.py                # /api/security/* (lanes, reject rates, baggage, gates)
+      compliance.py              # /api/compliance/* (summary, upcoming tasks)
+      trends.py                  # /api/trends/*
+      chat.py                    # /api/chat/* (streaming, demo prompts)
+
+  frontend/
+    app/
+      overview/page.tsx          # Operations Overview
+      queue/page.tsx             # Queue Performance
+      traffic/page.tsx           # Traffic Monitor (simulation)
+      compliance/page.tsx        # Compliance Advisor
+      chat/page.tsx              # AI Insights Chat
+      trends/page.tsx            # Trends & Analytics
+    components/
+      layout/
+        sidebar.tsx              # Navigation + dynamic data sources
+        header.tsx               # App header
+      dashboard/
+        kpi-card.tsx             # KPI card component
+        alert-card.tsx           # Alert card (warning/error/success/info)
+        compliance-gauge.tsx     # Circular gauge
+        share-button.tsx         # Share via clipboard/email
+      charts/
+        line-chart.tsx           # Multi-line chart (bifurcated support)
+        bar-chart.tsx            # Horizontal/vertical bar chart
+        heatmap-chart.tsx        # Zone x time window heatmap
+      traffic/
+        terminal-map.tsx         # SVG terminal map with particles & heatmap overlay
+        terminal-map-data.ts     # Gate coordinates, lounges, map constants
+        particle-engine.ts       # Bezier-path particle animation engine
+        status-panel.tsx         # Simulation status cards + gates legend
+    hooks/
+      use-api.ts                 # SWR data fetching hook
+      use-streaming.ts           # SSE streaming hook for chat
+    lib/
+      types.ts                   # TypeScript interfaces
+      constants.ts               # Navigation items, report date
+      api.ts                     # API helper (fetchApi)
+```
+
+---
+
+## Data Model
+
+### Generated Datasets (17 files)
+
+| File | Description |
+|------|-------------|
+| `pax_daily_volumes.parquet` | Daily passenger counts by terminal & type |
+| `pax_hourly_showup.parquet` | Hourly show-up profiles |
+| `pax_by_airline.parquet` | Airline distribution |
+| `queue_zone_compliance.parquet` | Queue performance by zone & time window |
+| `queue_hourly_compliance.parquet` | Hourly queue performance detail |
+| `security_lanes_daily.parquet` | Daily security lane performance |
+| `security_lanes_hourly.parquet` | Hourly security lane metrics |
+| `atm_daily.parquet` | Air traffic movements |
+| `baggage_utilization.parquet` | Baggage belt metrics |
+| `gate_utilization.parquet` | Gate/stand usage & boarding modes |
+| `biometric_adoption.parquet` | Biometric registration data |
+| `voc_feedback.parquet` | Complaints/compliments aggregated |
+| `voc_messages.parquet` | Individual customer messages |
+| `otp_daily.parquet` | On-time performance by terminal |
+| `baggage_delivery.parquet` | First/last bag delivery times |
+| `slot_adherence.parquet` | Schedule slot adherence rates |
+| `safety_issues.parquet` | Safety incidents by terminal & category |
+
+### Demo Date: January 24, 2026
+
+Intentionally injected anomalies:
+- Queue performance drop at T2 Check-in 34-86 (14:00-16:00)
+- High reject rates at security lanes L6, L3 (12-14%)
+- Passenger volume spike +45% during afternoon
+- VOC sentiment deterioration (complaints +60%)
+
+---
+
+## Configuration
+
+### Targets & Thresholds (`config.yaml`)
 
 ```yaml
 targets:
@@ -269,167 +290,57 @@ targets:
       target_compliance_pct: 95
 ```
 
-### AI Provider Configuration
+### AI Provider
 
-Support for multiple AI providers:
-- **OpenAI GPT-4** (default, requires API key)
-- **Anthropic Claude** (requires API key)
-- **Rule-based fallback** (no API key needed)
+Default: **Gemini 2.5 Flash** (free tier, ~1,500 requests/day)
 
-Set in `config.yaml`:
+Alternative: OpenAI GPT-4 - edit `config.yaml`:
 ```yaml
 ai:
-  default_provider: "openai"  # or "anthropic"
-  temperature: 0.3
-  max_tokens: 2000
+  default_provider: "openai"
 ```
+And set `OPENAI_API_KEY` in `backend/.env`.
 
 ---
 
-## 📈 Data Model
+## Technical Stack
 
-### Generated Datasets
-
-1. **pax_daily_volumes.parquet** - Daily passenger counts
-2. **pax_hourly_showup.parquet** - Hourly show-up profiles
-3. **pax_by_airline.parquet** - Airline distribution
-4. **queue_zone_compliance.parquet** - Compliance by zone & time window
-5. **queue_hourly_compliance.parquet** - Hourly compliance detail
-6. **security_lanes_daily.parquet** - Daily lane performance
-7. **security_lanes_hourly.parquet** - Hourly lane metrics
-8. **atm_daily.parquet** - Aircraft movements
-9. **baggage_utilization.parquet** - Baggage belt metrics
-10. **gate_utilization.parquet** - Gate/stand usage & boarding modes
-11. **biometric_adoption.parquet** - Biometric registration & adoption
-12. **voc_feedback.parquet** - Complaints/compliments aggregated
-13. **voc_messages.parquet** - Individual customer messages
-
-### Anomalies (Demo Date: Jan 24, 2026)
-
-Intentionally injected for demo:
-- Queue compliance drop at T2 Check-in 34-86 (14:00-16:00)
-- High reject rates at security lanes L6, L3 (12-14%)
-- Passenger volume spike +45% during afternoon
-- Increased bus boarding at T2 (40%+)
-- VOC sentiment deterioration (complaints +60%)
+- **Frontend:** Next.js 16 (App Router), React 19, TypeScript
+- **UI:** shadcn/ui, Tailwind CSS 4 (oklch dark theme)
+- **Charts:** Recharts 3.7
+- **Data Fetching:** SWR (REST), Server-Sent Events (chat streaming)
+- **Backend:** FastAPI, Uvicorn
+- **Data Processing:** Pandas 2.2, NumPy 1.26, PyArrow
+- **AI:** Google Gemini 2.5 Flash (default), OpenAI GPT-4 (optional)
+- **Data Storage:** Parquet files
 
 ---
 
-## 🔧 Customization
+## Troubleshooting
 
-### Adding New KPIs
-
-1. Create data generator in `data/generators/`
-2. Add data loader method in `src/utils/data_loader.py`
-3. Create calculation logic in `src/utils/calculations.py`
-4. Add visualization in dashboard pages
-
-### Modifying AI Prompts
-
-Edit `src/ai/prompts.py`:
-- `SYSTEM_PROMPT` - AI assistant personality and context
-- `DEMO_PROMPTS` - Pre-defined scenario prompts
-- `INSIGHT_TEMPLATES` - Output formatting templates
-
-### Custom Filters
-
-Modify `src/dashboard/components/filters.py` to add:
-- New filter dimensions
-- Custom date ranges
-- Additional drill-down options
-
----
-
-## 🐛 Troubleshooting
-
-### Data Generation Issues
-
-**Error:** `ModuleNotFoundError: No module named 'yaml'`
-**Fix:** `pip3 install pyyaml pandas numpy pyarrow`
-
-**Error:** `FileNotFoundError: config.yaml`
-**Fix:** Ensure you're running from project root directory
-
-### Dashboard Issues
-
-**Issue:** Streamlit won't start
-**Fix:** Check that port 8501 is available, or specify alternative:
+**Port already in use?**
 ```bash
-streamlit run app.py --server.port 8502
+lsof -ti:8000 | xargs kill
+lsof -ti:3000 | xargs kill
+./run.sh
 ```
 
-**Issue:** Charts not rendering
-**Fix:** Clear Streamlit cache: `streamlit cache clear`
+**Backend won't start?**
+```bash
+source .venv/bin/activate
+pip install -r backend/requirements.txt
+```
 
-### AI Chatbot Issues
+**Frontend build errors?**
+```bash
+cd frontend && npm install && cd ..
+```
 
-**Issue:** "API key not configured" warnings
-**Solution:** This is expected if you haven't set up OpenAI API key. The dashboard will use rule-based fallback analysis which still provides valuable insights.
-
-**To enable full AI:** Get OpenAI API key from https://platform.openai.com/ and add to `.env` file
-
----
-
-## 📝 Technical Stack
-
-- **Frontend:** Streamlit 1.32
-- **Visualization:** Plotly 5.18
-- **Data Processing:** Pandas 2.2, NumPy 1.26
-- **AI/ML:** OpenAI GPT-4, Anthropic Claude, LangChain
-- **Data Storage:** Parquet (via PyArrow)
-- **Configuration:** YAML
+**Chat not responding with AI?**
+- Check that `GEMINI_API_KEY` is set in `backend/.env`
+- Verify the key at https://aistudio.google.com/apikey
+- The dashboard still works with rule-based fallback responses
 
 ---
 
-## 🎓 Key Learnings & Best Practices
-
-1. **Mock Data Realism:** Data generators include:
-   - Realistic daily/hourly patterns
-   - Weekend effects
-   - Intentional anomalies for demo
-   - 7-day rolling averages
-
-2. **AI Integration:**
-   - Context-aware prompts with operational data
-   - Fallback to rule-based when API unavailable
-   - Structured output templates
-
-3. **Interactive Design:**
-   - Cross-filtering ready (Streamlit session state)
-   - Drill-down capabilities
-   - Export functionality
-
-4. **Executive Focus:**
-   - KPI-first design
-   - Anomaly highlighting
-   - Actionable recommendations
-
----
-
-## 🚀 Future Enhancements
-
-- [ ] Real-time data integration
-- [ ] Predictive analytics (forecasting)
-- [ ] Mobile-responsive design
-- [ ] Role-based access control
-- [ ] Email/SMS alerting
-- [ ] Integration with airport operational systems
-- [ ] Multi-airport support
-- [ ] Advanced ML models for anomaly detection
-
----
-
-## 📧 Support & Feedback
-
-For questions, issues, or suggestions, please open an issue in the repository or contact the development team.
-
----
-
-## 📄 License
-
-© 2026 Bangalore International Airport Limited (BIAL)
-All rights reserved.
-
----
-
-**Built with ❤️ for Airport Operations Excellence**
+Built for Bangalore International Airport Limited (BIAL) - Airport Operations Excellence

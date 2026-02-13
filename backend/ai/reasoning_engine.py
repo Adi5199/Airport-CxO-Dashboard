@@ -13,11 +13,13 @@ class OperationsReasoningEngine:
         self.calculator = MetricsCalculator()
         self.anomaly_detector = AnomalyDetector()
 
-    def analyze_queue_compliance(self, date: datetime) -> Dict:
+    def analyze_queue_compliance(self, date: datetime, terminal_list: list = None) -> Dict:
         queue_data = self.data_loader.load_queue_data()
         zone_compliance = queue_data["zone_compliance"]
 
         date_data = zone_compliance[zone_compliance["date"] == pd.to_datetime(date)]
+        if terminal_list:
+            date_data = date_data[date_data["terminal"].isin(terminal_list)]
 
         zone_performance = (
             date_data.groupby("zone")
@@ -29,7 +31,7 @@ class OperationsReasoningEngine:
         anomalies = self.anomaly_detector.detect_queue_anomalies(date_data)
 
         return {
-            "overall_compliance": float(date_data["actual_compliance_pct"].mean()),
+            "overall_compliance": float(date_data["actual_compliance_pct"].mean()) if len(date_data) > 0 else 0,
             "target": 95.0,
             "zones_below_target": int(len(zone_performance[zone_performance["actual_compliance_pct"] < 95])),
             "worst_zones": zone_performance.head(3).to_dict("records"),
@@ -41,30 +43,38 @@ class OperationsReasoningEngine:
             "total_pax_affected": int(date_data[date_data["actual_compliance_pct"] < 95]["pax_total"].sum()),
         }
 
-    def analyze_security_lanes(self, date: datetime) -> Dict:
+    def analyze_security_lanes(self, date: datetime, terminal_list: list = None) -> Dict:
         security_data = self.data_loader.load_security_data()
         daily_lanes = security_data["daily"]
 
         date_data = daily_lanes[daily_lanes["date"] == pd.to_datetime(date)]
+        if terminal_list and "terminal" in date_data.columns:
+            date_data = date_data[date_data["terminal"].isin(terminal_list)]
+
         ranked_lanes = date_data.sort_values("cleared_volume", ascending=False)
         anomalies = self.anomaly_detector.detect_security_lane_anomalies(date_data)
         high_reject = date_data[date_data["reject_rate_pct"] > 8.0].sort_values("reject_rate_pct", ascending=False)
 
         return {
             "total_cleared": int(date_data["cleared_volume"].sum()),
-            "avg_reject_rate": round(float(date_data["reject_rate_pct"].mean()), 2),
+            "avg_reject_rate": round(float(date_data["reject_rate_pct"].mean()), 2) if len(date_data) > 0 else 0,
             "top_performing_lanes": ranked_lanes.head(5).to_dict("records"),
             "high_reject_lanes": high_reject.to_dict("records"),
             "anomalies": anomalies.to_dict("records") if len(anomalies) > 0 else [],
         }
 
-    def analyze_passenger_volumes(self, date: datetime) -> Dict:
+    def analyze_passenger_volumes(self, date: datetime, terminal_list: list = None) -> Dict:
         pax_data = self.data_loader.load_passenger_data()
         daily_pax = pax_data["daily"]
         hourly_showup = pax_data["hourly_showup"]
 
         date_daily = daily_pax[daily_pax["date"] == pd.to_datetime(date)]
         date_hourly = hourly_showup[hourly_showup["date"] == pd.to_datetime(date)]
+
+        if terminal_list:
+            date_daily = date_daily[date_daily["terminal"].isin(terminal_list)]
+            if "terminal" in date_hourly.columns:
+                date_hourly = date_hourly[date_hourly["terminal"].isin(terminal_list)]
 
         hourly_by_hour = date_hourly.groupby("hour")["volume"].sum().reset_index()
         peak_hours = hourly_by_hour.nlargest(3, "volume")
@@ -73,7 +83,7 @@ class OperationsReasoningEngine:
         domestic_pax = int(date_daily[date_daily["passenger_type"] == "Domestic"]["pax_count"].sum())
         intl_pax = int(date_daily[date_daily["passenger_type"] == "International"]["pax_count"].sum())
 
-        vs_7day = round(float(date_daily["pax_count_vs_7day_pct"].mean()), 2) if "pax_count_vs_7day_pct" in date_daily.columns else 0.0
+        vs_7day = round(float(date_daily["pax_count_vs_7day_pct"].mean()), 2) if "pax_count_vs_7day_pct" in date_daily.columns and len(date_daily) > 0 else 0.0
 
         return {
             "total_pax": total_pax,
@@ -84,13 +94,18 @@ class OperationsReasoningEngine:
             "hourly_distribution": hourly_by_hour.to_dict("records"),
         }
 
-    def analyze_voc_sentiment(self, date: datetime) -> Dict:
+    def analyze_voc_sentiment(self, date: datetime, terminal_list: list = None) -> Dict:
         voc_data = self.data_loader.load_voc_data()
         feedback = voc_data["feedback"]
         messages = voc_data["messages"]
 
         date_feedback = feedback[feedback["date"] == pd.to_datetime(date)]
         date_messages = messages[messages["date"] == pd.to_datetime(date)]
+
+        if terminal_list:
+            date_feedback = date_feedback[date_feedback["terminal"].isin(terminal_list)]
+            if "terminal" in date_messages.columns:
+                date_messages = date_messages[date_messages["terminal"].isin(terminal_list)]
 
         total_complaints = int(date_feedback["complaints"].sum())
         total_compliments = int(date_feedback["compliments"].sum())
@@ -110,10 +125,10 @@ class OperationsReasoningEngine:
             "negative_messages": negative_msgs.head(10).to_dict("records"),
         }
 
-    def generate_root_cause_analysis(self, date: datetime, zone: str, time_window: str) -> Dict:
-        queue_analysis = self.analyze_queue_compliance(date)
-        security_analysis = self.analyze_security_lanes(date)
-        pax_analysis = self.analyze_passenger_volumes(date)
+    def generate_root_cause_analysis(self, date: datetime, zone: str, time_window: str, terminal_list: list = None) -> Dict:
+        queue_analysis = self.analyze_queue_compliance(date, terminal_list)
+        security_analysis = self.analyze_security_lanes(date, terminal_list)
+        pax_analysis = self.analyze_passenger_volumes(date, terminal_list)
 
         factors = []
 
@@ -150,11 +165,11 @@ class OperationsReasoningEngine:
             "severity": "High" if queue_analysis["overall_compliance"] < 90 else "Medium",
         }
 
-    def generate_executive_summary(self, date: datetime) -> str:
-        queue = self.analyze_queue_compliance(date)
-        security = self.analyze_security_lanes(date)
-        pax = self.analyze_passenger_volumes(date)
-        voc = self.analyze_voc_sentiment(date)
+    def generate_executive_summary(self, date: datetime, terminal_list: list = None) -> str:
+        queue = self.analyze_queue_compliance(date, terminal_list)
+        security = self.analyze_security_lanes(date, terminal_list)
+        pax = self.analyze_passenger_volumes(date, terminal_list)
+        voc = self.analyze_voc_sentiment(date, terminal_list)
 
         findings = []
         findings.append(f"**Total Passengers:** {pax['total_pax']:,} ({pax['domestic_pax']:,} Domestic, {pax['international_pax']:,} International)")

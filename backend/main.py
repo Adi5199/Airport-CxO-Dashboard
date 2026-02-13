@@ -11,7 +11,7 @@ from backend.core.config import CONFIG
 from backend.core.data_loader import DataLoader
 from backend.ai.reasoning_engine import OperationsReasoningEngine
 from backend.ai.chatbot import AirportChatbot
-from backend.routers import filters, overview, queue, security, trends, chat
+from backend.routers import filters, overview, queue, security, trends, chat, compliance
 
 
 @asynccontextmanager
@@ -53,6 +53,7 @@ app.include_router(queue.router)
 app.include_router(security.router)
 app.include_router(trends.router)
 app.include_router(chat.router)
+app.include_router(compliance.router)
 
 
 @app.get("/api/health")

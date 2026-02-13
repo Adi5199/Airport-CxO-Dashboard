@@ -1,9 +1,9 @@
 "use client";
-import { AlertTriangle, CheckCircle, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle, XCircle, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface AlertCardProps {
-  variant: "warning" | "success" | "error";
+  variant: "warning" | "success" | "error" | "info";
   title: string;
   children: React.ReactNode;
 }
@@ -12,6 +12,7 @@ const variants = {
   warning: { bg: "bg-yellow-500/10 border-yellow-500/30", icon: AlertTriangle, iconColor: "text-yellow-500" },
   success: { bg: "bg-emerald-500/10 border-emerald-500/30", icon: CheckCircle, iconColor: "text-emerald-500" },
   error: { bg: "bg-red-500/10 border-red-500/30", icon: XCircle, iconColor: "text-red-500" },
+  info: { bg: "bg-blue-500/10 border-blue-500/30", icon: Info, iconColor: "text-blue-500" },
 };
 
 export function AlertCard({ variant, title, children }: AlertCardProps) {

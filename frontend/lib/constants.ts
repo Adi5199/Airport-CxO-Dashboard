@@ -1,7 +1,8 @@
 export const NAV_ITEMS = [
-  { label: "Executive Overview", href: "/overview", icon: "LayoutDashboard" },
-  { label: "Queue Compliance", href: "/queue", icon: "Clock" },
-  { label: "Security & Operations", href: "/security", icon: "Shield" },
+  { label: "Operations Overview", href: "/overview", icon: "LayoutDashboard" },
+  { label: "Queue Performance", href: "/queue", icon: "Clock" },
+  { label: "Traffic Monitor", href: "/traffic", icon: "Radar" },
+  { label: "Compliance Advisor", href: "/compliance", icon: "ShieldCheck" },
   { label: "AI Insights Chat", href: "/chat", icon: "MessageSquare" },
   { label: "Trends & Analytics", href: "/trends", icon: "TrendingUp" },
 ] as const;

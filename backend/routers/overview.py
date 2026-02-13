@@ -8,7 +8,6 @@ router = APIRouter(prefix="/api/overview", tags=["overview"])
 @router.get("/kpis")
 def get_kpis(request: Request, date: str = Query(default=None), terminals: str = Query(default="T1,T2")):
     dl = request.app.state.data_loader
-    engine = request.app.state.reasoning_engine
     config = request.app.state.config
 
     report_date = pd.to_datetime(date) if date else pd.to_datetime(config["data"]["report_date"])
@@ -23,15 +22,15 @@ def get_kpis(request: Request, date: str = Query(default=None), terminals: str =
     intl_pax = int(report_pax[report_pax["passenger_type"] == "International"]["pax_count"].sum())
     pax_vs_7day = round(float(report_pax["pax_count_vs_7day_pct"].mean()), 1) if "pax_count_vs_7day_pct" in report_pax.columns and len(report_pax) > 0 else 0.0
 
+    # ATM data
+    atm_data = dl.load_atm_data()
+    report_atm = atm_data[(atm_data["date"] == report_date) & (atm_data["terminal"].isin(terminal_list))]
+    total_atm = int(report_atm["atm_count"].sum())
+
     queue_data = dl.load_queue_data()
     zone_compliance = queue_data["zone_compliance"]
     report_compliance = zone_compliance[(zone_compliance["date"] == report_date) & (zone_compliance["terminal"].isin(terminal_list))]
     avg_compliance = round(float(report_compliance["actual_compliance_pct"].mean()), 1) if len(report_compliance) > 0 else 0
-
-    security_data = dl.load_security_data()
-    security_daily = security_data["daily"]
-    report_security = security_daily[(security_daily["date"] == report_date) & (security_daily["terminal"].isin(terminal_list))]
-    avg_reject = round(float(report_security["reject_rate_pct"].mean()), 1) if len(report_security) > 0 else 0
 
     voc_data = dl.load_voc_data()
     voc_feedback = voc_data["feedback"]
@@ -40,66 +39,102 @@ def get_kpis(request: Request, date: str = Query(default=None), terminals: str =
     total_compliments = int(report_voc["compliments"].sum()) if len(report_voc) > 0 else 0
     voc_ratio = round(total_compliments / total_complaints, 2) if total_complaints > 0 else 0
 
-    biometric_data = dl.load_biometric_data()
-    report_bio = biometric_data[(biometric_data["date"] == report_date) & (biometric_data["terminal"].isin(terminal_list))]
-    bio_adoption = 0.0
-    if len(report_bio) > 0 and "total_eligible_pax" in report_bio.columns:
-        total_eligible = report_bio["total_eligible_pax"].sum()
-        total_registered = report_bio["biometric_registrations"].sum()
-        bio_adoption = round(float(total_registered / total_eligible * 100), 1) if total_eligible > 0 else 0.0
+    # OTP data
+    otp_data = dl.load_otp_data()
+    report_otp = otp_data[(otp_data["date"] == report_date) & (otp_data["terminal"].isin(terminal_list))]
+    otp_pct = round(float(report_otp["otp_pct"].mean()), 1) if len(report_otp) > 0 else 0
+
+    # Baggage delivery data
+    bag_delivery = dl.load_baggage_delivery_data()
+    report_bag = bag_delivery[(bag_delivery["date"] == report_date) & (bag_delivery["terminal"].isin(terminal_list))]
+    bag_delivery_pct = round(float(report_bag["delivery_pct"].mean()), 1) if len(report_bag) > 0 else 0
+    first_bag_min = round(float(report_bag["first_bag_minutes"].mean()), 1) if len(report_bag) > 0 else 0
+    last_bag_min = round(float(report_bag["last_bag_minutes"].mean()), 1) if len(report_bag) > 0 else 0
+
+    # Safety issues
+    safety_data = dl.load_safety_data()
+    report_safety = safety_data[(safety_data["date"] == report_date) & (safety_data["terminal"].isin(terminal_list))]
+    safety_issues = len(report_safety)
+
+    # Slot adherence
+    slot_data = dl.load_slot_adherence_data()
+    report_slot = slot_data[(slot_data["date"] == report_date) & (slot_data["terminal"].isin(terminal_list))]
+    slot_adherence_pct = round(float(report_slot["adherence_pct"].mean()), 1) if len(report_slot) > 0 else 0
 
     return {
         "total_pax": total_pax,
         "domestic_pax": domestic_pax,
         "international_pax": intl_pax,
         "pax_vs_7day_pct": pax_vs_7day,
+        "total_atm": total_atm,
         "queue_compliance_pct": avg_compliance,
         "compliance_delta": round(avg_compliance - 95.0, 1),
-        "avg_reject_rate": avg_reject,
         "voc_ratio": voc_ratio,
         "total_complaints": total_complaints,
         "total_compliments": total_compliments,
-        "biometric_adoption_pct": bio_adoption,
+        "otp_pct": otp_pct,
+        "baggage_delivery_pct": bag_delivery_pct,
+        "first_bag_minutes": first_bag_min,
+        "last_bag_minutes": last_bag_min,
+        "safety_issues": safety_issues,
+        "slot_adherence_pct": slot_adherence_pct,
     }
 
 
 @router.get("/executive-summary")
-def get_executive_summary(request: Request, date: str = Query(default=None)):
+def get_executive_summary(request: Request, date: str = Query(default=None), terminals: str = Query(default="T1,T2")):
     engine = request.app.state.reasoning_engine
+    dl = request.app.state.data_loader
     config = request.app.state.config
     report_date = datetime.strptime(date, "%Y-%m-%d") if date else datetime.strptime(config["data"]["report_date"], "%Y-%m-%d")
+    terminal_list = terminals.split(",")
 
-    queue = engine.analyze_queue_compliance(report_date)
-    security = engine.analyze_security_lanes(report_date)
-    pax = engine.analyze_passenger_volumes(report_date)
-    voc = engine.analyze_voc_sentiment(report_date)
+    queue = engine.analyze_queue_compliance(report_date, terminal_list)
+    security = engine.analyze_security_lanes(report_date, terminal_list)
+    pax = engine.analyze_passenger_volumes(report_date, terminal_list)
+    voc = engine.analyze_voc_sentiment(report_date, terminal_list)
+
+    # OTP
+    otp_data = dl.load_otp_data()
+    pd_date = pd.to_datetime(report_date)
+    report_otp = otp_data[(otp_data["date"] == pd_date) & (otp_data["terminal"].isin(terminal_list))]
+    otp_pct = round(float(report_otp["otp_pct"].mean()), 1) if len(report_otp) > 0 else 0
+
+    # Baggage delivery
+    bag_delivery = dl.load_baggage_delivery_data()
+    report_bag = bag_delivery[(bag_delivery["date"] == pd_date) & (bag_delivery["terminal"].isin(terminal_list))]
+    bag_delivery_pct = round(float(report_bag["delivery_pct"].mean()), 1) if len(report_bag) > 0 else 0
 
     # Determine overall status
-    if queue["overall_compliance"] >= 95:
+    if queue["overall_compliance"] >= 95 and otp_pct >= 85:
         status = "on_track"
         status_label = "On Track"
         status_detail = "All major KPIs meeting targets"
     elif queue["overall_compliance"] >= 90:
         status = "attention"
         status_label = "Attention Needed"
-        status_detail = "Some zones below target"
+        status_detail = "Some KPIs need monitoring"
     else:
         status = "critical"
         status_label = "Action Required"
         status_detail = "Multiple zones significantly below target"
 
-    peak_hours = []
-    if pax.get("peak_hours"):
-        peak_hours = [f"{int(h['hour']):02d}:00" for h in pax["peak_hours"][:3]]
+    terminal_label = "Overall" if len(terminal_list) > 1 else terminal_list[0]
 
     actions = []
-    if queue["zones_below_target"] > 0:
+    if queue["zones_below_target"] > 0 and queue["worst_zones"]:
         worst_zone = queue["worst_zones"][0]["zone"]
-        actions.append({"priority": "Immediate", "action": f"Address queue delays at {worst_zone}"})
+        actions.append({"priority": "Immediate", "action": f"Address queue delays at {worst_zone} ({terminal_label})"})
+    if otp_pct < 85:
+        actions.append({"priority": "Today", "action": f"Review on-time performance ({otp_pct}%) — coordinate with ATC and airlines ({terminal_label})"})
+    if bag_delivery_pct < 90:
+        actions.append({"priority": "Today", "action": f"Baggage delivery at {bag_delivery_pct}% — review belt allocation ({terminal_label})"})
     if security["high_reject_lanes"]:
         top_lane = security["high_reject_lanes"][0]
         actions.append({"priority": "Today", "action": f"Review {top_lane['lane']} ({round(top_lane['reject_rate_pct'], 1)}% reject rate)"})
-    actions.append({"priority": "This Week", "action": "Review staffing allocation during peak hours"})
+    if voc["ratio"] < 2.0:
+        actions.append({"priority": "Today", "action": f"Customer sentiment needs attention — VOC ratio {voc['ratio']}:1 ({terminal_label})"})
+    actions.append({"priority": "This Week", "action": f"Review staffing allocation during peak hours ({terminal_label})"})
 
     return {
         "date": report_date.strftime("%B %d, %Y"),
@@ -112,43 +147,78 @@ def get_executive_summary(request: Request, date: str = Query(default=None)):
         "pax_vs_7day_pct": pax["vs_7day_pct"],
         "queue_compliance": round(queue["overall_compliance"], 1),
         "zones_below_target": queue["zones_below_target"],
-        "avg_reject_rate": security["avg_reject_rate"],
-        "high_reject_lanes": len(security["high_reject_lanes"]),
+        "otp_pct": otp_pct,
+        "baggage_delivery_pct": bag_delivery_pct,
         "voc_ratio": round(voc["ratio"], 2),
         "voc_sentiment": voc["sentiment"],
         "total_complaints": voc["total_complaints"],
         "total_compliments": voc["total_compliments"],
-        "peak_hours": peak_hours,
         "actions": actions,
     }
 
 
 @router.get("/pax-trend")
-def get_pax_trend(request: Request, days: int = 15, end_date: str = Query(default=None)):
+def get_pax_trend(request: Request, days: int = 15, end_date: str = Query(default=None), terminals: str = Query(default="T1,T2")):
     dl = request.app.state.data_loader
     config = request.app.state.config
     end = pd.to_datetime(end_date) if end_date else pd.to_datetime(config["data"]["report_date"])
     start = end - timedelta(days=days - 1)
+    terminal_list = terminals.split(",")
 
     daily_pax = dl.load_passenger_data()["daily"]
-    trend = daily_pax[(daily_pax["date"] >= start) & (daily_pax["date"] <= end)]
-    trend_agg = trend.groupby("date")["pax_count"].sum().reset_index()
+    trend = daily_pax[(daily_pax["date"] >= start) & (daily_pax["date"] <= end) & (daily_pax["terminal"].isin(terminal_list))]
 
-    return {"data": [{"date": row["date"].strftime("%Y-%m-%d"), "pax_count": int(row["pax_count"])} for _, row in trend_agg.iterrows()]}
+    # Bifurcated by Dom/Int
+    dom_trend = trend[trend["passenger_type"] == "Domestic"].groupby("date")["pax_count"].sum().reset_index()
+    intl_trend = trend[trend["passenger_type"] == "International"].groupby("date")["pax_count"].sum().reset_index()
+    total_trend = trend.groupby("date")["pax_count"].sum().reset_index()
+
+    # Merge
+    merged = total_trend.rename(columns={"pax_count": "total"})
+    dom_agg = dom_trend.rename(columns={"pax_count": "domestic"})
+    intl_agg = intl_trend.rename(columns={"pax_count": "international"})
+    merged = merged.merge(dom_agg, on="date", how="left").merge(intl_agg, on="date", how="left").fillna(0)
+
+    return {"data": [
+        {
+            "date": row["date"].strftime("%Y-%m-%d"),
+            "total": int(row["total"]),
+            "domestic": int(row["domestic"]),
+            "international": int(row["international"]),
+        }
+        for _, row in merged.iterrows()
+    ]}
 
 
 @router.get("/atm-trend")
-def get_atm_trend(request: Request, days: int = 15, end_date: str = Query(default=None)):
+def get_atm_trend(request: Request, days: int = 15, end_date: str = Query(default=None), terminals: str = Query(default="T1,T2")):
     dl = request.app.state.data_loader
     config = request.app.state.config
     end = pd.to_datetime(end_date) if end_date else pd.to_datetime(config["data"]["report_date"])
     start = end - timedelta(days=days - 1)
+    terminal_list = terminals.split(",")
 
     atm_data = dl.load_atm_data()
-    trend = atm_data[(atm_data["date"] >= start) & (atm_data["date"] <= end)]
-    trend_agg = trend.groupby("date")["atm_count"].sum().reset_index()
+    trend = atm_data[(atm_data["date"] >= start) & (atm_data["date"] <= end) & (atm_data["terminal"].isin(terminal_list))]
 
-    return {"data": [{"date": row["date"].strftime("%Y-%m-%d"), "atm_count": int(row["atm_count"])} for _, row in trend_agg.iterrows()]}
+    dom_trend = trend[trend["type"] == "Domestic"].groupby("date")["atm_count"].sum().reset_index()
+    intl_trend = trend[trend["type"] == "International"].groupby("date")["atm_count"].sum().reset_index()
+    total_trend = trend.groupby("date")["atm_count"].sum().reset_index()
+
+    merged = total_trend.rename(columns={"atm_count": "total"})
+    dom_agg = dom_trend.rename(columns={"atm_count": "domestic"})
+    intl_agg = intl_trend.rename(columns={"atm_count": "international"})
+    merged = merged.merge(dom_agg, on="date", how="left").merge(intl_agg, on="date", how="left").fillna(0)
+
+    return {"data": [
+        {
+            "date": row["date"].strftime("%Y-%m-%d"),
+            "total": int(row["total"]),
+            "domestic": int(row["domestic"]),
+            "international": int(row["international"]),
+        }
+        for _, row in merged.iterrows()
+    ]}
 
 
 @router.get("/terminal-breakdown")
@@ -165,13 +235,14 @@ def get_terminal_breakdown(request: Request, date: str = Query(default=None)):
 
 
 @router.get("/zone-compliance-summary")
-def get_zone_compliance_summary(request: Request, date: str = Query(default=None)):
+def get_zone_compliance_summary(request: Request, date: str = Query(default=None), terminals: str = Query(default="T1,T2")):
     dl = request.app.state.data_loader
     config = request.app.state.config
     report_date = pd.to_datetime(date) if date else pd.to_datetime(config["data"]["report_date"])
+    terminal_list = terminals.split(",")
 
     zone_compliance = dl.load_queue_data()["zone_compliance"]
-    report = zone_compliance[zone_compliance["date"] == report_date]
+    report = zone_compliance[(zone_compliance["date"] == report_date) & (zone_compliance["terminal"].isin(terminal_list))]
     summary = report.groupby("zone")["actual_compliance_pct"].mean().reset_index()
     summary = summary.sort_values("actual_compliance_pct")
 
@@ -179,13 +250,14 @@ def get_zone_compliance_summary(request: Request, date: str = Query(default=None
 
 
 @router.get("/alerts")
-def get_alerts(request: Request, date: str = Query(default=None)):
+def get_alerts(request: Request, date: str = Query(default=None), terminals: str = Query(default="T1,T2")):
     dl = request.app.state.data_loader
     config = request.app.state.config
     report_date = pd.to_datetime(date) if date else pd.to_datetime(config["data"]["report_date"])
+    terminal_list = terminals.split(",")
 
     zone_compliance = dl.load_queue_data()["zone_compliance"]
-    report = zone_compliance[zone_compliance["date"] == report_date]
+    report = zone_compliance[(zone_compliance["date"] == report_date) & (zone_compliance["terminal"].isin(terminal_list))]
     below_target = report[report["actual_compliance_pct"] < 95].sort_values("actual_compliance_pct").head(5)
 
     queue_alerts = []
@@ -198,17 +270,16 @@ def get_alerts(request: Request, date: str = Query(default=None)):
             "variance": round(float(row["variance_from_target"]), 1),
         })
 
-    security_daily = dl.load_security_data()["daily"]
-    report_security = security_daily[security_daily["date"] == report_date]
-    high_reject = report_security[report_security["reject_rate_pct"] > 8].sort_values("reject_rate_pct", ascending=False)
-
-    security_alerts = []
-    for _, row in high_reject.iterrows():
-        security_alerts.append({
-            "lane": row["lane"],
+    # Safety alerts
+    safety_data = dl.load_safety_data()
+    report_safety = safety_data[(safety_data["date"] == report_date) & (safety_data["terminal"].isin(terminal_list))]
+    safety_alerts = []
+    for _, row in report_safety.iterrows():
+        safety_alerts.append({
+            "category": row["category"],
             "terminal": row["terminal"],
-            "reject_rate": round(float(row["reject_rate_pct"]), 1),
-            "reject_count": int(row["reject_count"]),
+            "severity": row["severity"],
+            "resolved": bool(row["resolved"]),
         })
 
-    return {"queue_alerts": queue_alerts, "security_alerts": security_alerts}
+    return {"queue_alerts": queue_alerts, "safety_alerts": safety_alerts}

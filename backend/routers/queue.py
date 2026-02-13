@@ -7,15 +7,16 @@ router = APIRouter(prefix="/api/queue", tags=["queue"])
 
 
 @router.get("/status")
-def get_queue_status(request: Request, date: str = Query(default=None)):
+def get_queue_status(request: Request, date: str = Query(default=None), terminals: str = Query(default="T1,T2")):
     dl = request.app.state.data_loader
     config = request.app.state.config
     report_date = pd.to_datetime(date) if date else pd.to_datetime(config["data"]["report_date"])
+    terminal_list = terminals.split(",")
 
     zone_compliance = dl.load_queue_data()["zone_compliance"]
-    report = zone_compliance[zone_compliance["date"] == report_date]
+    report = zone_compliance[(zone_compliance["date"] == report_date) & (zone_compliance["terminal"].isin(terminal_list))]
 
-    overall = round(float(report["actual_compliance_pct"].mean()), 1)
+    overall = round(float(report["actual_compliance_pct"].mean()), 1) if len(report) > 0 else 0
     total_zones = int(report["zone"].nunique())
     zones_below = int(len(report.groupby("zone")["actual_compliance_pct"].mean().reset_index().query("actual_compliance_pct < 95")))
     pax_affected = int(report[report["actual_compliance_pct"] < 95]["pax_total"].sum())
@@ -31,35 +32,38 @@ def get_queue_status(request: Request, date: str = Query(default=None)):
 
 
 @router.get("/zones")
-def get_zones(request: Request, date: str = Query(default=None)):
+def get_zones(request: Request, date: str = Query(default=None), terminals: str = Query(default="T1,T2")):
     dl = request.app.state.data_loader
     config = request.app.state.config
     report_date = pd.to_datetime(date) if date else pd.to_datetime(config["data"]["report_date"])
+    terminal_list = terminals.split(",")
 
     zone_compliance = dl.load_queue_data()["zone_compliance"]
-    report = zone_compliance[zone_compliance["date"] == report_date]
+    report = zone_compliance[(zone_compliance["date"] == report_date) & (zone_compliance["terminal"].isin(terminal_list))]
     zones = sorted(report["zone"].unique().tolist())
     return {"zones": zones}
 
 
 @router.get("/root-cause")
-def get_root_cause(request: Request, date: str = Query(default=None), zone: str = "Check-in 34-86", time_window: str = "1400-1600"):
+def get_root_cause(request: Request, date: str = Query(default=None), zone: str = "Check-in 34-86", time_window: str = "1400-1600", terminals: str = Query(default="T1,T2")):
     engine = request.app.state.reasoning_engine
     config = request.app.state.config
     report_date = datetime.strptime(date, "%Y-%m-%d") if date else datetime.strptime(config["data"]["report_date"], "%Y-%m-%d")
+    terminal_list = terminals.split(",")
 
-    result = engine.generate_root_cause_analysis(report_date, zone, time_window)
+    result = engine.generate_root_cause_analysis(report_date, zone, time_window, terminal_list)
     return result
 
 
 @router.get("/zone-detail")
-def get_zone_detail(request: Request, date: str = Query(default=None), zone: str = Query(default="Check-in 34-86")):
+def get_zone_detail(request: Request, date: str = Query(default=None), zone: str = Query(default="Check-in 34-86"), terminals: str = Query(default="T1,T2")):
     dl = request.app.state.data_loader
     config = request.app.state.config
     report_date = pd.to_datetime(date) if date else pd.to_datetime(config["data"]["report_date"])
+    terminal_list = terminals.split(",")
 
     zone_compliance = dl.load_queue_data()["zone_compliance"]
-    report = zone_compliance[(zone_compliance["date"] == report_date) & (zone_compliance["zone"] == zone)]
+    report = zone_compliance[(zone_compliance["date"] == report_date) & (zone_compliance["zone"] == zone) & (zone_compliance["terminal"].isin(terminal_list))]
 
     if len(report) == 0:
         return {"zone": zone, "avg_compliance": 0, "threshold_minutes": 0, "total_pax": 0, "avg_wait_time": 0, "time_series": []}
@@ -89,13 +93,14 @@ def get_zone_detail(request: Request, date: str = Query(default=None), zone: str
 
 
 @router.get("/heatmap")
-def get_heatmap(request: Request, date: str = Query(default=None)):
+def get_heatmap(request: Request, date: str = Query(default=None), terminals: str = Query(default="T1,T2")):
     dl = request.app.state.data_loader
     config = request.app.state.config
     report_date = pd.to_datetime(date) if date else pd.to_datetime(config["data"]["report_date"])
+    terminal_list = terminals.split(",")
 
     zone_compliance = dl.load_queue_data()["zone_compliance"]
-    report = zone_compliance[zone_compliance["date"] == report_date]
+    report = zone_compliance[(zone_compliance["date"] == report_date) & (zone_compliance["terminal"].isin(terminal_list))]
 
     pivot = report.pivot_table(index="zone", columns="time_window", values="actual_compliance_pct", aggfunc="mean")
 

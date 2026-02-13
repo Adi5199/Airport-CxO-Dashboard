@@ -1,12 +1,12 @@
 # Quick Start Guide
 
-Get the BIAL Airport Operations Dashboard running in 3 simple steps.
+Get the BIAL Brain & Advisor dashboard running in 3 simple steps.
 
 ## Architecture
 
 ```
-Frontend:  Next.js + shadcn/ui + Tailwind + Recharts   (port 3000)
-Backend:   FastAPI + Python (data layer + AI chat)      (port 8000)
+Frontend:  Next.js 16 + shadcn/ui + Tailwind CSS 4 + Recharts   (port 3000)
+Backend:   FastAPI + Python (data layer + AI chat)                (port 8000)
 AI Chat:   Google Gemini 2.5 Flash (free tier)
 ```
 
@@ -34,6 +34,7 @@ cd ..
 ```bash
 cd data/generators
 python3 generate_all_data.py
+python3 operational_kpi_data.py
 cd ../..
 ```
 
@@ -75,32 +76,39 @@ And set `OPENAI_API_KEY` in `backend/.env`. Requires an OpenAI account with bill
 
 ## Quick Demo (5 Minutes)
 
-### 1. Executive Overview (1 min)
-- View AI-generated executive summary
-- Check key KPIs: PAX volume, queue compliance, reject rates, VOC ratio
+### 1. Operations Overview (1 min)
+- View AI-generated executive summary with status indicator
+- Switch between **Overall / Terminal 1 / Terminal 2** - all KPIs update dynamically
+- Check key KPIs: PAX, ATM, OTP, Baggage Delivery, Safety, Queue Performance, Slot Adherence, VOC
 
-### 2. Queue Compliance Analysis (2 min) - KEY DEMO
-- Navigate to **Queue Compliance** in the sidebar
-- Click **"Analyze Root Cause"** on any zone
-- Review AI-generated severity, contributing factors, and recommendations
+### 2. Queue Performance Analysis (2 min) - KEY DEMO
+- Navigate to **Queue Performance** in the sidebar
+- Switch between **Departure Entry / Check-in / Security** sub-tabs
+- Click **"Analyze Root Cause"** - AI analyzes contributing factors, severity, and recommendations
+- Switch terminal filter to see terminal-specific data
 
-### 3. AI Chat (2 min)
+### 3. Traffic Monitor (1 min)
+- Navigate to **Traffic Monitor**
+- Select a gate and click **"Simulate Boarding"**
+- Watch passenger flow animation with AI insights generated below the map
+
+### 4. AI Chat (1 min)
 - Navigate to **AI Insights Chat**
 - Click any **Demo Scenario** button in the sidebar
-- Ask follow-up questions in natural language
+- Share AI responses via Copy or Email
 
 ---
 
 ## Demo Scenario Focus
 
 **Date:** January 24, 2026
-**Issue:** Queue compliance concerns at T2, security lane reject rates
+**Issue:** Queue performance concerns at T2, security lane reject rates
 
 **What to Look For:**
-- Check-in 34-86 compliance at ~94% (Target: 95%)
+- Check-in 34-86 performance at ~94% (Target: 95%)
 - T1-Left-L3: 13.7% reject rate (295 rejections)
 - T2-Left-L6: 12.8% reject rate (198 rejections)
-- AI identifies actionable recommendations per zone
+- AI identifies actionable recommendations per zone and terminal
 
 ---
 
@@ -108,11 +116,12 @@ And set `OPENAI_API_KEY` in `backend/.env`. Requires an OpenAI account with bill
 
 | Page | URL | Description |
 |------|-----|-------------|
-| Executive Overview | `/overview` | KPIs, AI summary, trends, alerts |
-| Queue Compliance | `/queue` | Zone status, root cause, heatmap, drill-down |
-| Security Operations | `/security` | Lane performance, baggage, gates |
-| Trends & Analytics | `/trends` | 30-day PAX, biometric, VOC trends |
-| AI Insights Chat | `/chat` | Streaming chat with demo scenarios |
+| Operations Overview | `/overview` | KPIs, AI summary, trends, alerts, terminal filter |
+| Queue Performance | `/queue` | Zone performance, root cause, heatmap, sub-tabs |
+| Traffic Monitor | `/traffic` | T2 map, boarding simulation, AI insights |
+| Compliance Advisor | `/compliance` | Compliance categories, upcoming tasks |
+| AI Insights Chat | `/chat` | Streaming chat with demo scenarios, share |
+| Trends & Analytics | `/trends` | 30-day PAX, VOC trends |
 
 ---
 
@@ -149,16 +158,16 @@ cd frontend && npm install && cd ..
 Airport CxO Dash/
   config.yaml              # Shared configuration
   run.sh                   # Single launcher (both services)
-  data/generated/          # 13 Parquet data files
+  data/generated/          # 17 Parquet data files
   backend/
     main.py                # FastAPI app
     .env                   # API keys (GEMINI_API_KEY)
     core/                  # Data loader, calculations
     ai/                    # Chatbot, reasoning engine, prompts
-    routers/               # API endpoints (overview, queue, security, trends, chat)
+    routers/               # API endpoints (overview, queue, security, compliance, trends, chat)
   frontend/
-    app/                   # Next.js pages (overview, queue, security, trends, chat)
-    components/            # shadcn/ui + chart components
+    app/                   # Next.js pages (overview, queue, traffic, compliance, chat, trends)
+    components/            # shadcn/ui + chart + traffic components
     hooks/                 # useApi (SWR), useStreaming (SSE)
     lib/                   # Types, constants, API helpers
 ```
